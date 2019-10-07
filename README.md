@@ -1,6 +1,15 @@
-#Inch test
+# Inch test
 
-Hello, This is the app I have done for the test. I build the app with PostgreSQL in database instead of sqlite. And Rspec for the test
+Hello, This is the app I have done for the test. I build the app with PostgreSQL in database instead of sqlite. And Rspec for the test.
+
+* There are 3 files principal in my algorithm
+*services/import_service.rb*  
+*models/building.rb* 
+*model/person/rb*  
+
+* For the test Rspec  
+*spec/services/import_service_spec.rb*  
+*spec/support/csv_helper.rb*
 
 ## Requirements
 * ruby 2.6.3p62
