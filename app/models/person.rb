@@ -7,6 +7,11 @@ class Person < ApplicationRecord
   validates :email, format: { with: REGEXP_EMAIL, message: 'INVALID_FORMAT' }, allow_blank: true
 
   ##########################################################################
+  # ASSOCIATIONS
+  ##########################################################################
+  has_many :person_email
+
+  ##########################################################################
   # METHODS
   ##########################################################################
   def self.create_import(attributes)
@@ -19,8 +24,11 @@ class Person < ApplicationRecord
         mobile_phone_number: attributes['mobile_phone_number'],
         address: attributes['address']
       )
-      if person[:email].blank? && attributes['email'].present?
-        person.update(email: attributes['email'])
+      person_emails = person.person_email.pluck(:email)
+      email = attributes['email']
+      if email.present? && !person_emails.include?(email)
+        person.update(email: email)
+        person.person_email.create(email: email)
       end
     end
     person.save

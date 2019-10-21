@@ -118,7 +118,9 @@ describe ImportService do
 
         import.create_person_import
 
-        expect { person1.reload }.to_not change { person1.email }
+        expect { person1.reload }.to change { person1.email }
+          .from('h.dupont@gmail.com')
+          .to('h.dupont_changed@gmail.com')
       end
 
       it 'should not update others attributes' do
@@ -147,6 +149,23 @@ describe ImportService do
             .from(nil)
             .to('h.dupont_changed@gmail.com')
         end
+      end
+
+      context 'update old version email of person' do
+        before do
+          person_email = Person.find_by_reference(1).person_email
+          person_email.create(email: 'h.dupont_changed@gmail.com')
+        end
+
+        it 'should not change email' do
+          person1 = Person.find_by(reference: 1)
+          import = ImportService.new(file_path: csv_person1.path)
+
+          import.create_person_import
+
+          expect { person1.reload }.to_not change { person1.email }
+        end
+
       end
     end
 
