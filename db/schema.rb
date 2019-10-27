@@ -38,13 +38,6 @@ ActiveRecord::Schema.define(version: 2019_10_22_220530) do
     t.datetime "updated_at", precision: 6, null: false
   end
 
-  create_table "person_emails", force: :cascade do |t|
-    t.integer "person_id"
-    t.string "email"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
   create_table "versionings", force: :cascade do |t|
     t.string "value"
     t.datetime "created_at", precision: 6, null: false
