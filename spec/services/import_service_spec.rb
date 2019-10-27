@@ -112,7 +112,7 @@ describe ImportService do
           .to('10 Rue La bruyère 2')
       end
 
-      it 'should not update email' do
+      it 'should update email' do
         person1 = Person.find_by(reference: 1)
         import = ImportService.new(file_path: csv_person1.path)
 
@@ -133,37 +133,49 @@ describe ImportService do
           .and not_change { person1.lastname }
       end
 
-      context 'update the person has never email' do
+      context 'update old version attributes' do
         before do
-          person1 = Person.find_by(reference: 1)
-          person1.update!(email: nil)
+          person = Person.find_by_reference(1)
+          person.versionings.create(type_attribute: 'home_phone_number', value: '0129999999')
+          person.versionings.create(type_attribute: 'mobile_phone_number', value: '0699999999')
+          person.versionings.create(type_attribute: 'email', value: 'h.dupont_changed@gmail.com')
+          person.versionings.create(type_attribute: 'address', value: '10 Rue La bruyère 2')
         end
 
-        it 'should update email for the person' do
-          person1 = Person.find_by(reference: 1)
-          import = ImportService.new(file_path: csv_person1.path)
-
-          import.create_person_import
-
-          expect { person1.reload }.to change { person1.email }
-            .from(nil)
-            .to('h.dupont_changed@gmail.com')
-        end
-      end
-
-      context 'update old version email of person' do
-        before do
-          person_email = Person.find_by_reference(1).person_email
-          person_email.create(email: 'h.dupont_changed@gmail.com')
-        end
-
-        it 'should not change email' do
+        it 'should not update email' do
           person1 = Person.find_by(reference: 1)
           import = ImportService.new(file_path: csv_person1.path)
 
           import.create_person_import
 
           expect { person1.reload }.to_not change { person1.email }
+        end
+
+        it 'should not update address' do
+          person1 = Person.find_by(reference: 1)
+          import = ImportService.new(file_path: csv_person1.path)
+
+          import.create_person_import
+
+          expect { person1.reload }.to_not change { person1.address }
+        end
+
+        it 'should not update mobile_phone_number' do
+          person1 = Person.find_by(reference: 1)
+          import = ImportService.new(file_path: csv_person1.path)
+
+          import.create_person_import
+
+          expect { person1.reload }.to_not change { person1.mobile_phone_number }
+        end
+
+        it 'should not update home_phone_number' do
+          person1 = Person.find_by(reference: 1)
+          import = ImportService.new(file_path: csv_person1.path)
+
+          import.create_person_import
+
+          expect { person1.reload }.to_not change { person1.home_phone_number }
         end
 
       end
@@ -275,7 +287,20 @@ describe ImportService do
           .and not_change { building1.city }
           .and not_change { building1.country }
       end
+      context 'with old version attributes' do
+        before do
+          building = Building.find_by_reference(1)
+          building.versionings.create(type_attribute: 'manager_name', value: 'Martin Faure Updated')
+        end
+        it 'should not update manager name' do
+          building1 = Building.find_by_reference('1')
+          import = ImportService.new(file_path: csv_buildings_update.path)
 
+          import.create_building_import
+
+          expect { building1.reload }.to_not change { building1.manager_name }
+        end
+      end
     end
   end
 end

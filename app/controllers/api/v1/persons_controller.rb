@@ -20,7 +20,10 @@ class Api::V1::PersonsController < ApplicationController
     @person = Person.new(person_params)
 
     if @person.save
-      @person.person_email.create(email: person_params[:email])
+      Person::VERSIONING_ATTRIBUTES.each do |attribute|
+        @person.versionings.create(type_attribute: attribute, value: person_params[attribute])
+      end
+
       render json: @person.as_json, status: 201
     else
       render json: @person.errors, status: :unprocessable_entity
@@ -31,8 +34,8 @@ class Api::V1::PersonsController < ApplicationController
   def update
     if @person.update(person_params)
 
-      unless @person.person_email.pluck(:email).include?(person_params[:email])
-        @person.person_email.create(email: person_params[:email])
+      Person::VERSIONING_ATTRIBUTES.each do |attribute|
+        @person.versionings.create(type_attribute: attribute, value: person_params[attribute])
       end
       render json: @person, status: :ok
     else

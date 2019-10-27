@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_10_20_165049) do
+ActiveRecord::Schema.define(version: 2019_10_22_220530) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -43,6 +43,16 @@ ActiveRecord::Schema.define(version: 2019_10_20_165049) do
     t.string "email"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "versionings", force: :cascade do |t|
+    t.string "value"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.string "versionable_type"
+    t.bigint "versionable_id"
+    t.string "type_attribute"
+    t.index ["versionable_type", "versionable_id"], name: "index_versionings_on_versionable_type_and_versionable_id"
   end
 
 end

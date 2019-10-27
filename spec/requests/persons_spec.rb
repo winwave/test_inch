@@ -54,8 +54,8 @@ describe 'Persons API', type: :request do
   end
 
   describe 'POST #create' do
-    it 'responds with the expected keys' do
-      post "/api/v1/persons", params: {
+    let(:params) {
+      {
         person: {
           reference: '2',
           firstname: 'Jean',
@@ -66,6 +66,10 @@ describe 'Persons API', type: :request do
           address: '40 Rue René Clair'
         }
       }
+    }
+    it 'responds with the expected values' do
+      post "/api/v1/persons", params: params
+
       expect(response.status).to eq 201
       expect(body_as_json).to include(
         'reference' => '2',
@@ -78,20 +82,35 @@ describe 'Persons API', type: :request do
       )
     end
 
-    it 'should save email in table person_email' do
-      post "/api/v1/persons", params: {
-        person: {
-          reference: '2',
-          firstname: 'Jean',
-          lastname: 'Durand',
-          home_phone_number: '0123336799',
-          mobile_phone_number: '0663456789',
-          email: 'jdurand@gmail.com',
-          address: '40 Rue René Clair'
-        }
-      }
-      person_email = Person.last.person_email
-      expect(person_email.pluck(:email)).to include('jdurand@gmail.com')
+    it 'should save email in versioning table' do
+      post "/api/v1/persons", params: params
+
+      person_versoining_email = Person.last.versionings.attribute_values('email')
+
+      expect(person_versoining_email).to include('jdurand@gmail.com')
+    end
+
+    it 'should save address in versioning table' do
+      post "/api/v1/persons", params: params
+
+      person_versoining_address = Person.last.versionings.attribute_values('address')
+
+      expect(person_versoining_address).to include('40 Rue René Clair')
+    end
+
+    it 'should save home_phone_number in versioning table' do
+      post "/api/v1/persons", params: params
+
+      person_versoining_home_phone_number = Person.last.versionings.attribute_values('home_phone_number')
+
+      expect(person_versoining_home_phone_number).to include('0123336799')
+    end
+
+    it 'should save mobile_phone_number in versioning table' do
+      post "/api/v1/persons", params: params
+
+      person_versoining_mobile_phone_number = Person.last.versionings.attribute_values('mobile_phone_number')
+      expect(person_versoining_mobile_phone_number).to include('0663456789')
     end
   end
 
@@ -100,6 +119,7 @@ describe 'Persons API', type: :request do
       import = ImportService.new(file_path: csv_persons.path)
       import.create_person_import
     end
+
     it 'should email was changed' do
       person = Person.find_by_reference('2')
       put "/api/v1/persons/#{person.id}", params: {
@@ -113,8 +133,47 @@ describe 'Persons API', type: :request do
         .to('jdurand_update@gmail.com')
     end
 
-    context 'update old version email of person' do
-      let(:csv_person1_data) do
+    it 'should address was changed' do
+      person = Person.find_by_reference('2')
+      put "/api/v1/persons/#{person.id}", params: {
+        person: {
+          address: '40 Rue René Clair updated'
+        }
+      }
+      expect(response.status).to eq 200
+      expect { person.reload }.to change { person[:address] }
+        .from('40 Rue René Clair')
+        .to('40 Rue René Clair updated')
+    end
+
+    it 'should home_phone_number was changed' do
+      person = Person.find_by_reference('2')
+      put "/api/v1/persons/#{person.id}", params: {
+        person: {
+          home_phone_number: '0199999999'
+        }
+      }
+      expect(response.status).to eq 200
+      expect { person.reload }.to change { person[:home_phone_number] }
+        .from('0123336799')
+        .to('0199999999')
+    end
+
+    it 'should mobile_phone_number was changed' do
+      person = Person.find_by_reference('2')
+      put "/api/v1/persons/#{person.id}", params: {
+        person: {
+          mobile_phone_number: '0699999999'
+        }
+      }
+      expect(response.status).to eq 200
+      expect { person.reload }.to change { person[:mobile_phone_number] }
+        .from('0663456789')
+        .to('0699999999')
+    end
+
+    context 'with old version attributes' do
+      let(:csv_person1_data_new) do
         [
           {
             reference: '1',
@@ -128,13 +187,13 @@ describe 'Persons API', type: :request do
         ]
       end
 
-      let(:csv_person1) { generate_csv(csv_person1_data) }
+      let(:csv_person1) { generate_csv(csv_person1_data_new) }
       before do
         import = ImportService.new(file_path: csv_person1.path)
         import.create_person_import
       end
 
-      it 'should email was changed to the old email' do
+      it 'should email is changed' do
         person = Person.find_by_reference('1')
         put "/api/v1/persons/#{person.id}", params: {
           person: {
@@ -145,6 +204,45 @@ describe 'Persons API', type: :request do
         expect { person.reload }.to change { person[:email] }
           .from('h.dupont_changed@gmail.com')
           .to('h.dupont@gmail.com')
+      end
+
+      it 'should address is changed' do
+        person = Person.find_by_reference('1')
+        put "/api/v1/persons/#{person.id}", params: {
+          person: {
+            address: '10 Rue La bruyère'
+          }
+        }
+        expect(response.status).to eq 200
+        expect { person.reload }.to change { person[:address] }
+          .from('10 Rue La bruyère 2')
+          .to('10 Rue La bruyère')
+      end
+
+      it 'should home_phone_number is changed' do
+        person = Person.find_by_reference('1')
+        put "/api/v1/persons/#{person.id}", params: {
+          person: {
+            home_phone_number: '0123336799'
+          }
+        }
+        expect(response.status).to eq 200
+        expect { person.reload }.to change { person[:home_phone_number] }
+          .from('0129999999')
+          .to('0123336799')
+      end
+
+      it 'should mobile_phone_number is changed' do
+        person = Person.find_by_reference('1')
+        put "/api/v1/persons/#{person.id}", params: {
+          person: {
+            mobile_phone_number: '0663456789'
+          }
+        }
+        expect(response.status).to eq 200
+        expect { person.reload }.to change { person[:mobile_phone_number] }
+          .from('0699999999')
+          .to('0663456789')
       end
     end
   end

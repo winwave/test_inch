@@ -1,15 +1,17 @@
 class Person < ApplicationRecord
 
+  include Versionable
+
+  ##########################################################################
+  # CONSTANTS
+  ##########################################################################
   REGEXP_EMAIL = /\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/.freeze
+  VERSIONING_ATTRIBUTES = %w(email home_phone_number mobile_phone_number address).freeze
+
   ##########################################################################
   # VALIDATORS
   ##########################################################################
   validates :email, format: { with: REGEXP_EMAIL, message: 'INVALID_FORMAT' }, allow_blank: true
-
-  ##########################################################################
-  # ASSOCIATIONS
-  ##########################################################################
-  has_many :person_email
 
   ##########################################################################
   # METHODS
@@ -19,16 +21,8 @@ class Person < ApplicationRecord
     if person.new_record?
       person.update(attributes)
     else
-      person.update(
-        home_phone_number: attributes['home_phone_number'],
-        mobile_phone_number: attributes['mobile_phone_number'],
-        address: attributes['address']
-      )
-      person_emails = person.person_email.pluck(:email)
-      email = attributes['email']
-      if email.present? && !person_emails.include?(email)
-        person.update(email: email)
-        person.person_email.create(email: email)
+      VERSIONING_ATTRIBUTES.each do |key|
+        person.update_versioning_attribute(key, attributes[key])
       end
     end
     person.save

@@ -52,8 +52,8 @@ describe 'Buildings API', type: :request do
   end
 
   describe 'POST #create' do
-    it 'responds with the expected keys' do
-      post "/api/v1/buildings", params: {
+    let(:params) {
+      {
         building: {
           reference: '1',
           address: '10 Rue La bruyère',
@@ -63,6 +63,11 @@ describe 'Buildings API', type: :request do
           manager_name: 'Martin Faure'
         }
       }
+    }
+
+    it 'responds with the expected values' do
+      post "/api/v1/buildings", params: params
+
       expect(response.status).to eq 201
       expect(body_as_json).to include(
         'reference' => '1',
@@ -72,6 +77,14 @@ describe 'Buildings API', type: :request do
         'country' => 'France',
         'manager_name' => 'Martin Faure'
       )
+    end
+
+    it 'should save manager_name in versioning table' do
+      post "/api/v1/buildings", params: params
+
+      building_versoining_home_phone_number = Building.last.versionings.attribute_values('manager_name')
+
+      expect(building_versoining_home_phone_number).to include('Martin Faure')
     end
   end
 
@@ -92,6 +105,38 @@ describe 'Buildings API', type: :request do
       expect { building.reload }.to change { building.manager_name }
         .from('Martin Faure')
         .to('Martin Faure Updated')
+    end
+    context 'with old version attributes' do
+      let(:csv_building1_data_new) {
+        [
+          {
+            reference: '1',
+            address: '10 Rue La bruyère',
+            zip_code: '750019',
+            city: 'Paris',
+            country: 'France',
+            manager_name: 'Martin Faure new'
+          }
+        ]
+      }
+
+      let(:csv_building1) { generate_csv(csv_building1_data_new) }
+      before do
+        import = ImportService.new(file_path: csv_building1.path)
+        import.create_building_import
+      end
+
+      it 'should email is changed' do
+        building = Building.find_by_reference('1')
+        put "/api/v1/buildings/#{building.id}", params: {
+          building: {
+            'manager_name': 'Martin Faure'
+          }
+        }
+        expect { building.reload }.to change { building.manager_name }
+          .from('Martin Faure new')
+          .to('Martin Faure')
+      end
     end
   end
 

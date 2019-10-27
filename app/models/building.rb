@@ -1,5 +1,12 @@
 class Building < ApplicationRecord
 
+  include Versionable
+  
+  ##########################################################################
+  # CONSTANTS
+  ##########################################################################
+  VERSIONING_ATTRIBUTES = %w(manager_name).freeze
+
   ##########################################################################
   # METHODS
   ##########################################################################
@@ -8,7 +15,9 @@ class Building < ApplicationRecord
     if building.new_record?
       building.update(attributes)
     else
-      building.update(manager_name: attributes['manager_name'])
+      VERSIONING_ATTRIBUTES.each do |key|
+        building.update_versioning_attribute(key, attributes[key])
+      end
     end
     building.save
   end
